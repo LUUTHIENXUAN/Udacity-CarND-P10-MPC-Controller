@@ -44,11 +44,13 @@ The cost of a trajectory of length N is the total of all following cost below:
  1. [*Reference State*] EPSI  Cost
  1. [*Reference State*] Speed Cost
  1. [*Reference State*] **Combination of CTE & EPSI & Speed Cost**
+ 
         * This cost helps the car stick to reference path.
         * Increase its weight may slow down the car.
  1. [*Actuator*] Steering Cost
  1. [*Actuator*] Throttle Cost
  1. [*Actuator*] **Combination of Steering & Speed Cost**
+ 
         * This cost helps the car slow down at sharp turn
         * Increase its weight may bring the car to halt
           like car stopping in sharp curves and after few seconds,
@@ -56,6 +58,7 @@ The cost of a trajectory of length N is the total of all following cost below:
  1. [*Difference*] 2 Consecutive Steering Cost
  1. [*Difference*] 2 Consecutive Throttle Cost
  1. [*Difference*] **2 Consecutive Steering & Speed Cost**
+ 
         * Smooth the different steering value with speed
         * Increase its weight may cause green line zigzag
 
