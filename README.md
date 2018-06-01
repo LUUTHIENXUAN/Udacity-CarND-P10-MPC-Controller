@@ -1,11 +1,40 @@
-# Project 10: MPC Controls Project
+# Project 10: Model Predictive Control (MPC) Project
 
 ## 1. Introduction
-MPC controllers implemented in C++ to maneuver the vehicle around the track. This project was done in the following steps:
+MPC(Model Predictive Control) implemented in C++ to maneuver the vehicle around the track.
+
+#### Model Predictive Control
+- Model Predictive Control(MPC) reframes the task of following a trajectory as an optimization problem. The solution to the optimization problem is the optimal trajectory. MPC involves simulating different actuator inputs, predicting the resulting trajectory and selecting that trajectory with a minimum cost.
+
+- Once the lowest cost trajectory found, the very first step of actuation commands would be implemented. Then the rest of the calculated trajectory would be thrown away and use the current state to calculate a new optimal trajectory.
+
+  <div align="center">
+    <img src="MPC.png" alt="MPC"></a>
+  </div>
+
+#### Length and Duration
+Assume `T` as the duration over which future predictions are made. `T` is the product of timestep `N` and time elapes between actuations `dt`.
+- `N`: Because the car should run at 100 mph and as fast as possible at sharp turn so any futher predictions (more timesteps `N`)are not necessary.
+- `dt`: The choice of `dt` is very tricky, the smaller `dt` the more costly computation. The larger `dt` the more space between each calculation which results in unexpected events occured.
+
+In this project I chose `dt` as 0.1 and `N` as 10 which result the `T` value as 1 second.
 
 #### Vehicle Model
+MPC uses an optimizer to find the control inputs and minimize the cost function. At the very first step of control inputs, the new state of the vehicle as below updated and repeate the process of optimizer.
 
-- **Mode's Input**
+- **Model's Input**
+
+  ```C++
+  // values at timestep [t+1] based on values at timestep [t] after dt seconds
+  // Lf is the distance between the front of the vehicle and the center of gravity
+
+  x[t+1]    = x[t] + v[t] * cos(psi[t]) * dt;
+  y[t+1]    = y[t] + v[t] * sin(psi[t]) * dt;
+  psi[t+1]  = psi[t] + v[t]/Lf * delta[t] * dt;
+  v[t+1]    = v[t] + a[t] * dt;
+  cte[t+1]  = f(x[t]) - y[t] + v[t] * sin(epsi[t]) * dt;
+  epsi[t+1] = psi[t] - psi_des + v[t]/Lf * delta[t] * dt;
+  ```
 
   ```C++
   waypoints position on the track in global coordinates:
@@ -42,23 +71,23 @@ The cost of a trajectory of length N is the total of all following cost below:
 
  1. [*Reference State*] CTE   Cost
  1. [*Reference State*] EPSI  Cost
- 1. [*Reference State*] Speed Cost
- 1. [*Reference State*] **Combination of CTE & EPSI & Speed Cost**
- 
+ 1. [*Dealing with Stopping*] Speed Cost
+ 1. [*Combination*] **Combination of CTE & EPSI & Speed Cost**
+
         * This cost helps the car stick to reference path.
         * Increase its weight may slow down the car.
  1. [*Actuator*] Steering Cost
  1. [*Actuator*] Throttle Cost
- 1. [*Actuator*] **Combination of Steering & Speed Cost**
- 
+ 1. [*Combination*] **Combination of Steering & Speed Cost**
+
         * This cost helps the car slow down at sharp turn
         * Increase its weight may bring the car to halt
           like car stopping in sharp curves and after few seconds,
           it starts and continues
  1. [*Difference*] 2 Consecutive Steering Cost
  1. [*Difference*] 2 Consecutive Throttle Cost
- 1. [*Difference*] **2 Consecutive Steering & Speed Cost**
- 
+ 1. [*Combination*] **2 Consecutive Steering & Speed Cost**
+
         * Smooth the different steering value with speed
         * Increase its weight may cause green line zigzag
 
@@ -114,7 +143,15 @@ Each cost has its weights and relative weights were set up as below:
   }
   ```
 
-## 2. Results & Discussion
+#### Latency
+In a real car, an actuation command won't execute instantly - there will be a delay as the command propagates through the system. A realistic delay might be on the order of 100 milliseconds. As the result, the vehicle may react too late at tight turns and run-off the road. There are some solutions to deal with latency as below:
+1. One solution is that increase the timesteps `N` and add more penalties for stearing cost. This requires adjusting relative weights carefully and hard to adapt globally.
+1. Another solution is that calculating the current state with latency. This allow the vehicle look ahead and correct its position. I did not choose this method because it is exactly what MPC trying to do: **look ahead and predict**
+1. My solution is that add more penalties by combining streering value and speed value. The more tight turn ahead, the more streeing value and the higher cost with velocity. The car could slow down before the turn.
+
+
+
+## 2. Results
 
 Youtube video recorded at 100 (mph). Click to view!
 <div align="center">
